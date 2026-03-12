@@ -5,7 +5,7 @@ export default defineConfig(({ mode }) => {
   const singleFile = mode === 'singlefile';
 
   return {
-    base: './',
+    base: '/TarotOBS/',
     plugins: singleFile ? [viteSingleFile()] : [],
     server: {
       host: '0.0.0.0',
