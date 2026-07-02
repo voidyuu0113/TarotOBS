@@ -48,22 +48,35 @@ export class BottomFanView {
     const handCards = cards.filter((card) => card.zone === 'hand');
     this.handCardIds = handCards.map((card) => card.id);
     const jumperCards = cards.filter((card) => card.zone === 'jumper');
+    const compact = viewportWidth <= 820 || (viewportWidth <= 1024 && viewportHeight <= 600);
+    const portrait = viewportHeight > viewportWidth;
+    const cardScale = compact ? (portrait ? 0.72 : viewportHeight < 500 ? 0.62 : 0.74) : 1;
     const sizeById = new Map(
       cards.map((card) => {
         const frontTexture = card.frontAssetId ? getTexture(card.frontAssetId) : null;
         const backTexture = card.backAssetId ? getTexture(card.backAssetId) : null;
-        return [card.id, getCardDisplaySize(frontTexture, backTexture)] as const;
+        const baseSize = getCardDisplaySize(frontTexture, backTexture);
+        return [
+          card.id,
+          {
+            ...baseSize,
+            width: Math.round(baseSize.width * cardScale),
+            height: Math.round(baseSize.height * cardScale),
+            radius: Math.max(7, Math.round(baseSize.radius * cardScale)),
+          },
+        ] as const;
       }),
     );
-    const sidePadding = 132;
+    const sidePadding = compact ? 12 : 132;
     const averageHandWidth =
       handCards.length > 0
         ? handCards.reduce((sum, card) => sum + (sizeById.get(card.id)?.width ?? CARD_WIDTH), 0) / handCards.length
         : CARD_WIDTH;
     const baseInsertionGap = insertionIndex === null ? 0 : Math.min(averageHandWidth * 0.78, 46);
     const availableWidth = Math.max(averageHandWidth, viewportWidth - sidePadding * 2 - baseInsertionGap);
-    const overlap =
-      handCards.length > 1 ? Math.max(10, Math.min(42, (availableWidth - averageHandWidth) / (handCards.length - 1))) : 0;
+    const overlap = handCards.length > 1
+      ? Math.max(compact ? 2.5 : 10, Math.min(compact ? 28 : 42, (availableWidth - averageHandWidth) / (handCards.length - 1)))
+      : 0;
     const insertionGap = insertionIndex === null ? 0 : Math.min(averageHandWidth * 0.78, overlap + 34);
     const handLeftOffsets = Array.from({ length: handCards.length }, (_value, index) => {
       const gapOffset = insertionIndex !== null && index >= insertionIndex ? insertionGap : 0;
@@ -77,14 +90,15 @@ export class BottomFanView {
           }, 0)
         : 0;
     const fanStartX = Math.max(sidePadding, (viewportWidth - rowWidth) / 2);
-    const fanY = viewportHeight - 104;
+    const bottomOffset = compact ? Math.round((CARD_HEIGHT * cardScale) / 2 + (portrait ? 12 : 8)) : 104;
+    const fanY = viewportHeight - bottomOffset;
     const pileX = viewportWidth * 0.5;
-    const pileY = viewportHeight - 100;
+    const pileY = viewportHeight - bottomOffset;
     this.handBand = {
       x: Math.max(sidePadding, fanStartX - 24),
       y: fanY - 24,
       width: Math.max(CARD_WIDTH + insertionGap, rowWidth + 48),
-      height: CARD_HEIGHT + 44,
+      height: CARD_HEIGHT * cardScale + (compact ? 28 : 44),
     };
 
     cards.forEach((card) => {
@@ -104,13 +118,13 @@ export class BottomFanView {
         // Fan stacks left-to-right, where further-right cards render above earlier cards.
         const index = handCards.findIndex((entry) => entry.id === card.id);
         x = fanStartX + handLeftOffsets[index] + size.width / 2;
-        y = hoveredCardId === card.id ? fanY - 14 : fanY;
+        y = hoveredCardId === card.id ? fanY - (compact ? 9 : 14) : fanY;
         zIndex = 1000 + index + (hoveredCardId === card.id ? 500 : 0);
       } else if (card.zone === 'jumper') {
         // Jumpers protrude above the normal bottom deck area and render above regular bottom cards.
         const index = jumperCards.findIndex((entry) => entry.id === card.id);
-        x = pileX - 120 + index * 120;
-        y = pileY - 30 - index * 8;
+        x = pileX - 120 * cardScale + index * 120 * cardScale;
+        y = pileY - 30 * cardScale - index * 8 * cardScale;
         rotation = card.rotationJitter;
         zIndex = 2000 + index;
       } else {

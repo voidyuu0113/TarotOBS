@@ -6,6 +6,7 @@ body,
   height: 100%;
   overflow: hidden;
   background: transparent;
+  overscroll-behavior: none;
 }
 
 body {
@@ -15,6 +16,16 @@ body {
 
 canvas {
   display: block;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button,
+summary,
+.simple-select-trigger,
+.simple-select-option {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .panel {
@@ -876,4 +887,291 @@ canvas {
   min-height: 28px;
   border-radius: 999px;
   padding: 0;
+}
+
+/* Mobile controls and orientation-aware layouts */
+html[data-mobile="true"],
+html[data-mobile="true"] body,
+html[data-mobile="true"] #app {
+  width: 100vw;
+  height: var(--app-height, 100dvh);
+  min-height: var(--app-height, 100dvh);
+}
+
+html[data-mobile="true"] .panel {
+  box-sizing: border-box;
+  z-index: 40;
+  top: calc(12px + env(safe-area-inset-top));
+  right: auto;
+  bottom: auto;
+  left: calc(12px + env(safe-area-inset-left));
+  width: min(360px, calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  max-height: min(68dvh, calc(var(--app-height, 100dvh) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(226, 198, 144, 0.2);
+  border-radius: 20px;
+  background: rgba(10, 17, 15, 0.9);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(16px);
+}
+
+html[data-mobile="true"] .dock.collapsed {
+  top: calc(12px + env(safe-area-inset-top));
+  bottom: auto;
+  width: 52px;
+  height: 52px;
+  max-height: 52px;
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+html[data-mobile="true"] .dock > button:first-child {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  justify-self: end;
+  padding: 0;
+  border-radius: 14px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+html[data-mobile="true"] .dock.collapsed > button:first-child {
+  width: 52px;
+  height: 52px;
+  border: 0;
+  justify-self: stretch;
+}
+
+html[data-mobile="true"] .dock-section {
+  padding: 10px;
+  border-radius: 12px;
+}
+
+html[data-mobile="true"] .panel button,
+html[data-mobile="true"] .simple-select-trigger,
+html[data-mobile="true"] .simple-select-option {
+  min-height: 44px;
+}
+
+html[data-mobile="true"] .deck-editor {
+  box-sizing: border-box;
+  z-index: 50;
+  inset: 0;
+  width: auto;
+  height: var(--app-height, 100dvh);
+  gap: 10px;
+  padding:
+    calc(10px + env(safe-area-inset-top))
+    calc(10px + env(safe-area-inset-right))
+    calc(10px + env(safe-area-inset-bottom))
+    calc(10px + env(safe-area-inset-left));
+  border: 0;
+  border-radius: 0;
+}
+
+html[data-mobile="true"] .deck-editor-topbar {
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  align-items: stretch;
+  max-height: 42dvh;
+  overflow: auto;
+}
+
+html[data-mobile="true"] .deck-editor-topbar > :nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+html[data-mobile="true"] .deck-editor-topbar > :nth-child(2) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+html[data-mobile="true"] .deck-editor-topbar > :nth-child(3) {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+html[data-mobile="true"] .deck-editor-topbar > :nth-child(4) {
+  grid-column: 1 / -1;
+  grid-row: 4;
+}
+
+html[data-mobile="true"] .deck-editor-topbar > :nth-child(5) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+html[data-mobile="true"] .deck-editor-topbar-actions {
+  display: flex;
+  grid-auto-flow: unset;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+html[data-mobile="true"] .deck-editor-topbar-actions > button {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+html[data-mobile="true"] .deck-editor-body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+html[data-mobile="true"] .deck-editor-column,
+html[data-mobile="true"] .deck-editor-sidebar {
+  min-height: auto;
+  overflow: visible;
+  padding: 10px;
+  border-radius: 14px;
+}
+
+html[data-mobile="true"] .deck-editor-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+html[data-mobile="true"] .deck-editor-assets {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: visible;
+}
+
+html[data-mobile="true"] .deck-editor-card,
+html[data-mobile="true"] .deck-editor-asset-card {
+  padding: 7px;
+  border-radius: 12px;
+}
+
+html[data-mobile="true"] .deck-editor input,
+html[data-mobile="true"] .deck-editor textarea,
+html[data-mobile="true"] .deck-editor-lightbox input,
+html[data-mobile="true"] .deck-editor-lightbox textarea {
+  min-width: 0;
+  font-size: 16px;
+}
+
+html[data-mobile="true"] .deck-editor-modal,
+html[data-mobile="true"] .deck-editor-lightbox {
+  padding:
+    calc(12px + env(safe-area-inset-top))
+    calc(12px + env(safe-area-inset-right))
+    calc(12px + env(safe-area-inset-bottom))
+    calc(12px + env(safe-area-inset-left));
+}
+
+html[data-mobile="true"] .deck-editor-modal-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: calc(var(--app-height, 100dvh) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding: 16px;
+  border-radius: 18px;
+}
+
+html[data-mobile="true"] .deck-editor-lightbox-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: calc(var(--app-height, 100dvh) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 12px;
+  overflow: auto;
+  padding: 14px;
+  border-radius: 18px;
+}
+
+html[data-mobile="true"] .deck-editor-lightbox-card {
+  width: min(58vw, 240px);
+  max-height: 38dvh;
+  border-radius: 16px;
+}
+
+html[data-mobile="true"] .deck-editor-lightbox-sidebar {
+  width: 100%;
+}
+
+html[data-mobile="true"] .deck-editor-lightbox-assets {
+  max-height: 32dvh;
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .panel {
+  top: calc(8px + env(safe-area-inset-top));
+  bottom: auto;
+  left: calc(8px + env(safe-area-inset-left));
+  width: min(292px, 36vw);
+  max-height: calc(var(--app-height, 100dvh) - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .dock.collapsed {
+  width: 52px;
+  max-height: 52px;
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor {
+  padding:
+    calc(8px + env(safe-area-inset-top))
+    calc(8px + env(safe-area-inset-right))
+    calc(8px + env(safe-area-inset-bottom))
+    calc(8px + env(safe-area-inset-left));
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-topbar {
+  grid-template-columns: minmax(130px, 0.7fr) minmax(140px, 0.8fr) minmax(240px, 1.4fr) minmax(140px, 0.8fr) 44px;
+  max-height: none;
+  overflow: visible;
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-topbar > :nth-child(n) {
+  grid-row: 1;
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-topbar > :nth-child(1) { grid-column: 1; }
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-topbar > :nth-child(2) { grid-column: 2; }
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-topbar > :nth-child(3) { grid-column: 3; }
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-topbar > :nth-child(4) { grid-column: 4; }
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-topbar > :nth-child(5) { grid-column: 5; }
+
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-body {
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.9fr);
+  overflow: hidden;
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-column,
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-sidebar {
+  min-height: 0;
+  overflow: auto;
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-lightbox-panel {
+  grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1fr);
+  justify-items: stretch;
+}
+
+html[data-mobile="true"][data-orientation="landscape"] .deck-editor-lightbox-card {
+  width: min(30vw, 260px);
+  max-height: 70dvh;
+  justify-self: center;
+}
+
+@media (max-width: 390px) and (orientation: portrait) {
+  html[data-mobile="true"] .deck-editor-list,
+  html[data-mobile="true"] .deck-editor-assets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (hover: none) {
+  .deck-editor-card:hover {
+    transform: none;
+  }
 }

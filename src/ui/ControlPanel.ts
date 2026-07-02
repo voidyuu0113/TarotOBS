@@ -36,6 +36,7 @@ export class ControlPanel {
   private selectedSpawnMode: SpawnDeckMode = 'full78';
   private readonly authorXUrl = 'https://x.com/void_yuu';
   private copyResetTimer: number | null = null;
+  private mobileMode = false;
 
   constructor() {
     this.element.className = 'panel dock';
@@ -77,7 +78,12 @@ export class ControlPanel {
       ]),
       this.createSection('ui.editDeckSection', [this.openEditorButton]),
       this.createSection('ui.spawnDeck', [this.presetSelect.element, this.modeSelect.element, this.spawnButton, this.deletePresetButton]),
-      this.createSection('ui.deckInstances', [this.instanceSelect.element, this.removeInstanceButton, this.statusText]),
+      this.createSection('ui.deckInstances', [
+        this.instanceSelect.element,
+        this.activateInstanceButton,
+        this.removeInstanceButton,
+        this.statusText,
+      ]),
       this.contactAuthorSection,
     );
     this.authorModalPanel.append(this.authorModalCloseButton, this.authorModalTitle, this.authorNote, this.authorLinkButton);
@@ -90,7 +96,7 @@ export class ControlPanel {
     this.toggleButton.addEventListener('click', () => {
       this.collapsed = !this.collapsed;
       this.element.classList.toggle('collapsed', this.collapsed);
-      this.toggleButton.textContent = this.collapsed ? '>' : '<';
+      this.updateToggleButton();
     });
     this.contactAuthorButton.addEventListener('click', () => {
       this.openAuthorModal();
@@ -107,8 +113,21 @@ export class ControlPanel {
       }
     });
 
-    this.toggleButton.textContent = '<';
+    this.updateToggleButton();
     this.applyTranslations();
+  }
+
+  setMobileMode(mobile: boolean): void {
+    const wasMobile = this.mobileMode;
+    this.mobileMode = mobile;
+    this.element.classList.toggle('mobile-layout', mobile);
+    if (mobile && !wasMobile) {
+      this.collapsed = true;
+    } else if (!mobile) {
+      this.collapsed = false;
+    }
+    this.element.classList.toggle('collapsed', this.collapsed);
+    this.updateToggleButton();
   }
 
   getSelectedPresetId(): string | null {
@@ -219,6 +238,12 @@ export class ControlPanel {
 
   private openAuthorModal(): void {
     this.authorModal.classList.remove('hidden');
+  }
+
+  private updateToggleButton(): void {
+    this.toggleButton.textContent = this.mobileMode ? (this.collapsed ? '☰' : '×') : this.collapsed ? '>' : '<';
+    this.toggleButton.setAttribute('aria-expanded', String(!this.collapsed));
+    this.toggleButton.setAttribute('aria-label', this.collapsed ? 'Open controls' : 'Close controls');
   }
 
   private closeAuthorModal(): void {

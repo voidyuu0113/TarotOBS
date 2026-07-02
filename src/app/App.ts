@@ -164,10 +164,14 @@ export class TarotApp {
   private editorNameComposing = false;
   private editorPresetNameComposing = false;
   private editorSearchComposing = false;
+  private viewportWidth = 0;
+  private viewportHeight = 0;
+  private viewportFrame = 0;
 
   constructor(private readonly root: HTMLElement) {}
 
   async init(): Promise<void> {
+    this.syncViewportState(false);
     await this.pixi.init({
       resizeTo: window,
       backgroundAlpha: 0,
@@ -392,17 +396,23 @@ export class TarotApp {
     });
 
     await this.restoreState();
-    this.camera.x = window.innerWidth * 0.5;
-    this.camera.y = window.innerHeight * 0.5 - 160;
+    this.camera.x = this.viewportWidth * 0.5;
+    this.camera.y = this.viewportHeight * 0.5 - (this.isMobileViewport() ? 72 : 160);
     this.inputManager = new InputManager(this.pixi.canvas as HTMLCanvasElement, {
-      onMouseDown: this.onMouseDown,
-      onMouseMove: this.onMouseMove,
-      onMouseUp: this.onMouseUp,
+      onPointerDown: this.onPointerDown,
+      onPointerMove: this.onPointerMove,
+      onPointerUp: this.onPointerUp,
       onWheel: this.onWheel,
+      onGestureStart: this.onGestureStart,
+      onPinch: this.onPinch,
+      onGestureEnd: this.onGestureEnd,
     });
     this.inputManager.attach();
     this.pixi.ticker.add(this.onTick);
-    window.addEventListener('resize', this.render);
+    window.addEventListener('resize', this.scheduleViewportSync);
+    window.addEventListener('orientationchange', this.scheduleViewportSync);
+    window.visualViewport?.addEventListener('resize', this.scheduleViewportSync);
+    window.screen.orientation?.addEventListener('change', this.scheduleViewportSync);
     this.render();
   }
 
@@ -451,7 +461,7 @@ export class TarotApp {
     this.syncControls();
   };
 
-  private readonly onMouseDown = (event: MouseEvent): void => {
+  private readonly onPointerDown = (event: PointerEvent): void => {
     const { x: screenX, y: screenY } = this.getCanvasPoint(event);
     this.pointer = {
       mode: 'idle',
@@ -502,6 +512,12 @@ export class TarotApp {
       return;
     }
 
+    if (event.pointerType === 'touch') {
+      // A single finger on empty felt pans the world. Desktop keeps drag-box selection.
+      this.pointer.mode = 'panning';
+      return;
+    }
+
     this.pointer.mode = 'boxSelect';
     // Box selection intentionally applies only to table cards, never bottom-area cards.
     this.hoveredHandCardId = null;
@@ -519,7 +535,7 @@ export class TarotApp {
     this.render();
   };
 
-  private readonly onMouseMove = (event: MouseEvent): void => {
+  private readonly onPointerMove = (event: PointerEvent): void => {
     const { x: screenX, y: screenY } = this.getCanvasPoint(event);
     const deltaX = screenX - this.pointer.lastScreenX;
     const deltaY = screenY - this.pointer.lastScreenY;
@@ -613,8 +629,8 @@ export class TarotApp {
     this.updateHandHover(screenX, screenY);
   };
 
-  private readonly onMouseUp = (event: MouseEvent): void => {
-    if (event.button === 2 && this.pointer.mode === 'panning') {
+  private readonly onPointerUp = (event: PointerEvent): void => {
+    if (this.pointer.mode === 'panning') {
       this.resetPointer();
       return;
     }
@@ -650,6 +666,69 @@ export class TarotApp {
     this.updateHandHover(finalX, finalY);
     this.render();
   };
+
+  private readonly onGestureStart = (): void => {
+    this.boxSelect.reset();
+    this.dragController.reset();
+    this.draggingIds.clear();
+    this.handInsertionIndex = null;
+    this.resetPointer();
+    this.render();
+  };
+
+  private readonly onPinch = (gesture: { centerX: number; centerY: number; deltaX: number; deltaY: number; scaleFactor: number }): void => {
+    const canvas = this.pixi.canvas as HTMLCanvasElement;
+    const rect = canvas.getBoundingClientRect();
+    const centerX = gesture.centerX - rect.left;
+    const centerY = gesture.centerY - rect.top;
+    this.camera.pan(gesture.deltaX, gesture.deltaY);
+    this.camera.zoomAt(centerX, centerY, gesture.scaleFactor);
+    this.render();
+  };
+
+  private readonly onGestureEnd = (): void => {
+    this.resetPointer();
+    this.render();
+  };
+
+  private readonly scheduleViewportSync = (): void => {
+    if (this.viewportFrame) {
+      cancelAnimationFrame(this.viewportFrame);
+    }
+    this.viewportFrame = requestAnimationFrame(() => {
+      this.viewportFrame = 0;
+      this.syncViewportState(true);
+      this.render();
+    });
+  };
+
+  private syncViewportState(preserveWorldCenter: boolean): void {
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    if (preserveWorldCenter && this.viewportWidth > 0 && this.viewportHeight > 0) {
+      const worldCenterX = (this.viewportWidth * 0.5 - this.camera.x) / this.camera.zoom;
+      const worldCenterY = (this.viewportHeight * 0.5 - this.camera.y) / this.camera.zoom;
+      this.camera.x = width * 0.5 - worldCenterX * this.camera.zoom;
+      this.camera.y = height * 0.5 - worldCenterY * this.camera.zoom;
+    }
+    this.viewportWidth = width;
+    this.viewportHeight = height;
+
+    const orientation = width >= height ? 'landscape' : 'portrait';
+    const mobile = this.isMobileViewport(width, height);
+    document.documentElement.dataset.orientation = orientation;
+    document.documentElement.dataset.mobile = String(mobile);
+    document.documentElement.style.setProperty('--app-width', `${width}px`);
+    document.documentElement.style.setProperty('--app-height', `${height}px`);
+    this.root.dataset.orientation = orientation;
+    this.root.dataset.mobile = String(mobile);
+    this.controls.setMobileMode(mobile);
+    this.resetPointer();
+  }
+
+  private isMobileViewport(width = window.innerWidth, height = window.innerHeight): boolean {
+    return window.matchMedia('(pointer: coarse)').matches || width <= 820 || (width <= 1024 && height <= 600);
+  }
 
   private async restoreState(): Promise<void> {
     await this.ensureBuiltinDefaultAssets();
@@ -832,6 +911,7 @@ export class TarotApp {
     // Cards/presets only carry asset ids. Texture ownership stays centralized in AssetManager.
     await this.assets.acquireAssets(this.deck.getPresetAssetIds(presetId));
     const instance = this.deck.createInstance(presetId, mode, this.controls.isJumperEnabled());
+    this.deck.setActiveInstance(instance.id);
     this.selectedPresetId = presetId;
     this.controls.setSelectedInstanceId(instance.id);
     this.controls.jumperToggle.checked = this.deck.getActiveInstance()?.jumperEnabled ?? this.controls.jumperToggle.checked;
@@ -1157,11 +1237,12 @@ export class TarotApp {
         height: handBand.height + 12,
       };
     }
+    const compact = viewportWidth <= 820 || (viewportWidth <= 1024 && viewportHeight <= 600);
     return {
-      x: Math.max(132, viewportWidth * 0.28),
-      y: viewportHeight - RETURN_ZONE_HEIGHT,
-      width: Math.max(220, viewportWidth - Math.max(264, viewportWidth * 0.56)),
-      height: RETURN_ZONE_HEIGHT - 12,
+      x: compact ? 12 : Math.max(132, viewportWidth * 0.28),
+      y: viewportHeight - (compact ? 92 : RETURN_ZONE_HEIGHT),
+      width: compact ? viewportWidth - 24 : Math.max(220, viewportWidth - Math.max(264, viewportWidth * 0.56)),
+      height: compact ? 80 : RETURN_ZONE_HEIGHT - 12,
     };
   }
 
